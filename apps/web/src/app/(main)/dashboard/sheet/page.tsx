@@ -1,0 +1,324 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { trpc } from "@/lib/trpc";
+import { sheetModules } from "@/data/sheet";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import Link from "next/link";
+import { FileText, Download, Share2, Check } from "lucide-react";
+import { Youtube } from "@/components/icons/icons";
+import { OpensoxProBadge } from "@/components/sheet/OpensoxProBadge";
+import { ProgressBar } from "@/components/sheet/ProgressBar";
+import { Badge } from "@/components/ui/badge";
+
+const tableColumns = [
+  "S.No",
+  "Module Name",
+  "Doc",
+  "Watch",
+  "Live Sessions / Doubts",
+  "Done?",
+];
+
+export default function SheetPage() {
+  const { data: session, status } = useSession();
+  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const [copied, setCopied] = useState(false);
+
+  const { data: fetchedSteps, isLoading: isLoadingSteps } = (
+    trpc.user as any
+  ).getCompletedSteps.useQuery(undefined, {
+    enabled: !!session?.user && status === "authenticated",
+    refetchOnWindowFocus: false,
+  });
+
+  const updateStepsMutation = (
+    trpc.user as any
+  ).updateCompletedSteps.useMutation({
+    onSuccess: (data: string[]) => {
+      setCompletedSteps(data);
+    },
+  });
+
+  useEffect(() => {
+    if (fetchedSteps) {
+      setCompletedSteps(fetchedSteps);
+    }
+  }, [fetchedSteps]);
+
+  const handleCheckboxChange = (moduleId: string, checked: boolean) => {
+    let newCompletedSteps: string[];
+    if (checked) {
+      newCompletedSteps = [...completedSteps, moduleId];
+    } else {
+      newCompletedSteps = completedSteps.filter((id) => id !== moduleId);
+    }
+    setCompletedSteps(newCompletedSteps);
+    updateStepsMutation.mutate({ completedSteps: newCompletedSteps });
+  };
+
+  const handleDownloadPDF = () => {
+    // Create a printable version of the sheet
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const total = sheetModules.length;
+    const totalCompleted = completedSteps.length;
+    const percentage =
+      total > 0 ? Math.round((totalCompleted / total) * 100) : 0;
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>30 days of Open Source sheet</title>
+          <style>
+            body {
+              font-family: 'Courier New', monospace;
+              padding: 20px;
+              background: white;
+              color: black;
+            }
+            h1 { font-size: 24px; margin-bottom: 10px; }
+            .progress { margin-bottom: 20px; }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            th, td {
+              border: 1px solid #ddd;
+              padding: 8px;
+              text-align: left;
+            }
+            th {
+              background-color: #363636;
+              color: white;
+            }
+            tr:nth-child(even) {
+              background-color: #f2f2f2;
+            }
+            .completed { color: #9455f4; }
+          </style>
+        </head>
+        <body>
+          <h1>30 days of Open Source sheet</h1>
+          <div class="progress">
+            <p><strong>Total Progress:</strong> ${totalCompleted} / ${total} (${percentage}%)</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>S.No</th>
+                <th>Module Name</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sheetModules
+                .map(
+                  (module, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${module.name}</td>
+                  <td class="${completedSteps.includes(module.id) ? "completed" : ""}">
+                    ${completedSteps.includes(module.id) ? "✓ Completed" : "Pending"}
+                  </td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "30 days of Open Source sheet",
+          text: "Check out my progress on the Open Source sheet!",
+          url: url,
+        });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      // Fallback to clipboard if share fails
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (clipboardErr) {
+        console.error("Failed to copy:", clipboardErr);
+      }
+    }
+  };
+
+  if (status === "loading" || isLoadingSteps) {
+    return (
+      <div className="w-full p-6 flex items-center justify-center h-[80vh]">
+        <p className="text-ox-gray">Loading...</p>
+      </div>
+    );
+  }
+
+  const totalModules = sheetModules.length;
+  const completedCount = completedSteps.length;
+
+  return (
+    <div className="w-full h-full flex flex-col p-6 sm:p-6 overflow-hidden">
+      <div className="flex items-center justify-between pb-6 flex-shrink-0 flex-wrap gap-4">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-white tracking-tight">
+          30 days of Open Source sheet
+        </h2>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {copied && (
+            <Badge className="bg-ox-purple text-white border-0 flex items-center gap-1">
+              <Check className="h-3 w-3" />
+              Copied
+            </Badge>
+          )}
+          <button
+            onClick={handleDownloadPDF}
+            className="p-2 text-white hover:text-ox-purple transition-colors rounded-md hover:bg-ox-header/50"
+            title="Download as PDF"
+            aria-label="Download as PDF"
+          >
+            <Download className="h-5 w-5" />
+          </button>
+          <button
+            onClick={handleShare}
+            className="p-2 text-white hover:text-ox-purple transition-colors rounded-md hover:bg-ox-header/50"
+            title="Share sheet"
+            aria-label="Share sheet"
+          >
+            <Share2 className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="mb-6 flex-shrink-0">
+        <ProgressBar completed={completedCount} total={totalModules} />
+      </div>
+
+      <div
+        className="
+          w-full bg-ox-content border border-ox-header rounded-lg
+          flex-1 overflow-y-auto overflow-x-auto relative
+          [&::-webkit-scrollbar]:w-2
+          [&::-webkit-scrollbar]:h-1
+          [&::-webkit-scrollbar-track]:bg-transparent
+          [&::-webkit-scrollbar-thumb]:bg-ox-purple/30
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          [&::-webkit-scrollbar-thumb]:hover:bg-ox-purple/50
+        "
+      >
+        <Table className="w-full min-w-[800px]">
+          <TableHeader>
+            <TableRow className="border-b border-ox-header bg-ox-header">
+              {tableColumns.map((name, i) => (
+                <TableHead
+                  key={name}
+                  className={[
+                    "px-3 py-3 font-semibold text-white text-[12px] sm:text-sm whitespace-nowrap",
+                    "sticky top-0 z-30 bg-ox-header",
+                    i === 0 ? "text-left" : "text-center",
+                  ].join(" ")}
+                >
+                  {name}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+
+          <TableBody>
+            {sheetModules.map((module, index) => {
+              const isCompleted = completedSteps.includes(module.id);
+              return (
+                <TableRow
+                  key={module.id}
+                  className="border-y border-ox-sidebar bg-ox-content hover:bg-ox-sidebar transition-colors"
+                >
+                  <TableCell className="text-white text-[12px] sm:text-sm p-3 text-left">
+                    {index + 1}
+                  </TableCell>
+
+                  <TableCell className="text-white text-[12px] sm:text-sm p-3">
+                    {module.name}
+                  </TableCell>
+
+                  <TableCell className="text-center p-3">
+                    <Link
+                      href={`/sheet/${module.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-white hover:text-ox-purple transition-colors"
+                    >
+                      <FileText className="h-4 w-4" />
+                      <span className="text-[12px] sm:text-sm font-medium">
+                        read
+                      </span>
+                    </Link>
+                  </TableCell>
+
+                  <TableCell className="text-center p-3">
+                    <Link
+                      href={module.videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center hover:opacity-80 transition-opacity"
+                    >
+                      <span className="w-5 h-5 inline-flex items-center justify-center [&_svg_path]:fill-red-500">
+                        <Youtube />
+                      </span>
+                    </Link>
+                  </TableCell>
+
+                  <TableCell className="text-center p-3">
+                    <OpensoxProBadge />
+                  </TableCell>
+
+                  <TableCell className="text-center p-3">
+                    <div className="flex items-center justify-center">
+                      <Checkbox
+                        checked={isCompleted}
+                        onCheckedChange={(checked) =>
+                          handleCheckboxChange(module.id, checked === true)
+                        }
+                        className="border-ox-purple/50 data-[state=checked]:bg-ox-purple data-[state=checked]:border-ox-purple data-[state=checked]:text-white"
+                      />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
