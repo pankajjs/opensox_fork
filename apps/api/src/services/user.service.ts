@@ -55,7 +55,7 @@ export const userService = {
     prisma: ExtendedPrismaClient | PrismaClient,
     userId: string
   ) {
-    const user = await (prisma as any).user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { completedSteps: true },
     });
@@ -76,7 +76,7 @@ export const userService = {
     userId: string,
     completedSteps: string[]
   ) {
-    const user = await (prisma as any).user.update({
+    const user = await prisma.user.update({
       where: { id: userId },
       data: {
         completedSteps: completedSteps,

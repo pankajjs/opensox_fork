@@ -7,6 +7,6 @@ export const module16: SheetModule = {
       <h1>How to plan/discuss with maintainers?</h1>
       <p>Best practices for communicating and planning with project maintainers before starting work on issues.</p>
     `,
-  videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  videoUrl: "",
   comingSoon: true,
 };

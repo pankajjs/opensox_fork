@@ -7,6 +7,6 @@ export const module17: SheetModule = {
       <h1>Live fix/implement the issue - 1</h1>
       <p>First live session on fixing and implementing a medium difficulty issue.</p>
     `,
-  videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  videoUrl: "",
   comingSoon: true,
 };

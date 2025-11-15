@@ -7,6 +7,6 @@ export const module25: SheetModule = {
       <h1>Get/pick your third issue assigned (medium-hard)</h1>
       <p>Learn how to get your third issue assigned, focusing on medium to hard difficulty issues.</p>
     `,
-  videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  videoUrl: "",
   comingSoon: true,
 };

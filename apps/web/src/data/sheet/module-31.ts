@@ -7,6 +7,6 @@ export const module31: SheetModule = {
       <h1>How to get jobs/internships through OPEN SOURCE?</h1>
       <p>Learn how to leverage your OPEN SOURCE contributions to land jobs and internships in the tech industry.</p>
     `,
-  videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  videoUrl: "",
   comingSoon: true,
 };

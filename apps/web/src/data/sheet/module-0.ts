@@ -88,7 +88,7 @@ export const module0: SheetModule = {
 
       <img src="/images/sheet-2.webp" alt="Ajeet's work screenshot" style="width: 60%; max-width: 60%; height: auto; border-radius: 8px; margin: 20px auto; display: block;" />
 
-      <p>also there are going to be couple of bonus modules or couple of ad hoc modules. so if i for forget something in this list then i will cover all of that in these bonue modules</p>
+      <p>also there are going to be couple of bonus modules or couple of ad hoc modules. so if i for forget something in this list then i will cover all of that in these bonus modules</p>
       
       <h3 style="margin-top: 40px; margin-bottom: 20px; color: #9455f4;">todos:</h3>
       <ul style="list-style: none; padding-left: 0;">

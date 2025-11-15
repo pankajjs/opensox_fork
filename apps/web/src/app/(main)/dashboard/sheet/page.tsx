@@ -33,19 +33,61 @@ export default function SheetPage() {
   const { data: session, status } = useSession();
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const utils = trpc.useUtils();
 
-  const { data: fetchedSteps, isLoading: isLoadingSteps } = (
-    trpc.user as any
-  ).getCompletedSteps.useQuery(undefined, {
-    enabled: !!session?.user && status === "authenticated",
-    refetchOnWindowFocus: false,
-  });
+  // TypeScript has difficulty narrowing TRPC procedure union types.
+  // These procedures are correctly typed at runtime (query vs mutation).
+  const getCompletedStepsProcedure = trpc.user
+    .getCompletedSteps as typeof trpc.user.getCompletedSteps & {
+    useQuery: (input: undefined, opts?: any) => any;
+  };
+  const updateCompletedStepsProcedure = trpc.user
+    .updateCompletedSteps as typeof trpc.user.updateCompletedSteps & {
+    useMutation: (opts?: any) => any;
+  };
+  const getCompletedStepsUtilsProcedure = utils.user
+    .getCompletedSteps as typeof utils.user.getCompletedSteps & {
+    cancel: () => Promise<void>;
+    invalidate: () => Promise<void>;
+  };
 
-  const updateStepsMutation = (
-    trpc.user as any
-  ).updateCompletedSteps.useMutation({
+  const { data: fetchedSteps, isLoading: isLoadingSteps } =
+    getCompletedStepsProcedure.useQuery(undefined, {
+      enabled: !!session?.user && status === "authenticated",
+      refetchOnWindowFocus: false,
+    });
+
+  const updateStepsMutation = updateCompletedStepsProcedure.useMutation({
+    onMutate: async (newData: { completedSteps: string[] }) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await getCompletedStepsUtilsProcedure.cancel();
+
+      // Snapshot the previous value
+      const previousSteps = completedSteps;
+
+      // Optimistically update to the new value
+      setCompletedSteps(newData.completedSteps);
+
+      // Return context with the previous value
+      return { previousSteps };
+    },
     onSuccess: (data: string[]) => {
       setCompletedSteps(data);
+    },
+    onError: (
+      error: unknown,
+      _newData: { completedSteps: string[] },
+      context: { previousSteps: string[] } | undefined
+    ) => {
+      console.error("Failed to update completed steps:", error);
+      if (context?.previousSteps) {
+        setCompletedSteps(context.previousSteps);
+      } else if (fetchedSteps) {
+        setCompletedSteps(fetchedSteps);
+      }
+    },
+    onSettled: () => {
+      getCompletedStepsUtilsProcedure.invalidate();
     },
   });
 

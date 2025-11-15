@@ -5,26 +5,64 @@ import { sheetModules } from "@/data/sheet";
 import Link from "next/link";
 import { ArrowLeft, Download, Share2, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+
+// Helper function to sanitize HTML - only works on client side
+const sanitizeHTMLSync = (
+  html: string,
+  options?: { ALLOWED_TAGS: string[] }
+): string => {
+  if (typeof window === "undefined") {
+    return html;
+  }
+
+  // Lazy load DOMPurify only when needed on client side
+  // Using require to avoid SSR issues
+  try {
+    const DOMPurify = require("dompurify");
+    // Handle both default export and named export
+    const purify = DOMPurify.default || DOMPurify;
+    if (options) {
+      return purify.sanitize(html, options);
+    }
+    return purify.sanitize(html);
+  } catch (error) {
+    // Fallback if DOMPurify fails to load
+    console.warn(
+      "DOMPurify failed to load, returning unsanitized HTML:",
+      error
+    );
+    return html;
+  }
+};
 
 export default function ModuleDocPage() {
   const params = useParams();
   const moduleId = params?.moduleId as string;
   const [copied, setCopied] = useState(false);
-  
+
   const currentModule = sheetModules.find((m) => m.id === moduleId);
+
+  const sanitizedDocContent = useMemo(() => {
+    if (!currentModule?.docContent) return "";
+    return sanitizeHTMLSync(currentModule.docContent);
+  }, [currentModule?.docContent]);
 
   const handleDownloadPDF = () => {
     if (!currentModule) return;
-    
+
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
+
+    const sanitizedModuleName = sanitizeHTMLSync(currentModule.name, {
+      ALLOWED_TAGS: [],
+    });
 
     const htmlContent = `
       <!DOCTYPE html>
       <html>
         <head>
-          <title>${currentModule.name} - 30 days of Open Source sheet</title>
+          <title>${sanitizedModuleName} - 30 days of Open Source sheet</title>
           <style>
             body {
               font-family: 'Courier New', monospace;
@@ -57,9 +95,9 @@ export default function ModuleDocPage() {
           </style>
         </head>
         <body>
-          <h1>${currentModule.name}</h1>
+          <h1>${sanitizedModuleName}</h1>
           <div class="content">
-            ${currentModule.docContent}
+            ${sanitizedDocContent}
           </div>
         </body>
       </html>
@@ -100,7 +138,9 @@ export default function ModuleDocPage() {
               <ArrowLeft className="h-4 w-4" />
               <span>Back to Sheet</span>
             </Link>
-            <h1 className="text-3xl font-bold text-white mb-2">{currentModule.name}</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              {currentModule.name}
+            </h1>
           </div>
 
           <div className="bg-ox-content rounded-lg p-8 border border-ox-header text-center">
@@ -154,13 +194,16 @@ export default function ModuleDocPage() {
               </button>
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">{currentModule.name}</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            {currentModule.name}
+          </h1>
         </div>
 
         {/* Content */}
         <div className="bg-ox-content rounded-lg p-8 prose prose-invert max-w-none font-DMfont border border-ox-header">
           <div
-            dangerouslySetInnerHTML={{ __html: currentModule.docContent }}
+            // eslint-disable-next-line react/no-danger -- Safe: docContent is sanitized with DOMPurify before rendering
+            dangerouslySetInnerHTML={{ __html: sanitizedDocContent }}
             className="text-white [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4 [&_h1]:mt-6 [&_h1]:text-white [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mb-3 [&_h2]:mt-5 [&_h2]:text-white [&_p]:text-gray-300 [&_p]:mb-4 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:ml-6 [&_ul]:mb-4 [&_ul]:text-gray-300 [&_li]:mb-2 [&_pre]:bg-ox-sidebar [&_pre]:p-4 [&_pre]:rounded [&_pre]:overflow-x-auto [&_pre]:mb-4 [&_pre]:font-DMfont [&_pre]:border [&_pre]:border-ox-header [&_code]:text-ox-purple [&_code]:bg-ox-sidebar [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:font-DMfont [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded-lg [&_img]:my-5 [&_img]:border [&_img]:border-ox-header"
           />
         </div>

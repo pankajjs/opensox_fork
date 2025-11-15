@@ -7,6 +7,6 @@ export const module13: SheetModule = {
       <h1>Raise PRs and fix the reviews</h1>
       <p>Learn how to create pull requests and effectively address review comments from maintainers.</p>
     `,
-  videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  videoUrl: "",
   comingSoon: true,
 };

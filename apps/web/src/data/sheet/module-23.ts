@@ -7,6 +7,6 @@ export const module23: SheetModule = {
       <h1>How to make impressive contributions part-1?</h1>
       <p>First part of a guide on making standout contributions that get noticed in OPEN SOURCE projects.</p>
     `,
-  videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  videoUrl: "",
   comingSoon: true,
 };

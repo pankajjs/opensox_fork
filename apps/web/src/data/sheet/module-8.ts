@@ -7,6 +7,6 @@ export const module8: SheetModule = {
       <h1>Adhoc: How to learn anything fast while contributing?</h1>
       <p>Strategies and techniques for learning quickly while actively contributing to OPEN SOURCE projects.</p>
     `,
-  videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  videoUrl: "",
   comingSoon: true,
 };
