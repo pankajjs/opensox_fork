@@ -64,7 +64,7 @@ export async function GET(
   // read from premium directory for paid users
   const newslettersDir = path.join(
     process.cwd(),
-    "apps/web/src/content/newsletters-premium"
+    "src/content/newsletters-premium"
   );
   const filePath = path.join(newslettersDir, `${slug}.md`);
 
