@@ -58,14 +58,14 @@ const getSocialIcon = (url: string) => {
 const TestimonialCard = ({ item }: { item: Testimonial }) => {
   if (item.type === "image") {
     return (
-      <div className="mb-4 break-inside-avoid rounded-xl border border-[#252525] bg-neutral-900/50 overflow-hidden hover:border-neutral-700 transition-colors">
+      <div className="mb-4 break-inside-avoid rounded-xl border border-[#252525] bg-neutral-900/50 overflow-hidden hover:border-neutral-700 transition-colors p-2">
         <div className="relative w-full">
           <Image
             src={item.imageUrl}
             alt={item.alt}
-            width={600}
-            height={400}
-            className="w-full h-auto object-cover"
+            width={1000}
+            height={800}
+            className="w-full h-auto object-contain"
           />
         </div>
       </div>
@@ -115,15 +115,11 @@ const TestimonialCard = ({ item }: { item: Testimonial }) => {
 };
 
 const TestimonialsPage = () => {
-  // Fetch text testimonials from tRPC
   const { data: textTestimonialsData, isLoading } =
     trpc.testimonial.getAll.useQuery();
 
-  // Combine text testimonials from backend with image testimonials from data file
-  const allTestimonials = useMemo(() => {
-    const textTestimonials: TextTestimonial[] = (
-      textTestimonialsData || []
-    ).map(
+  const textTestimonials = useMemo(() => {
+    return (textTestimonialsData || []).map(
       (t: {
         id: string;
         content: string;
@@ -141,30 +137,9 @@ const TestimonialsPage = () => {
         },
       })
     );
-
-    // Interleave text and image testimonials for better visual distribution
-    const combined: Testimonial[] = [];
-    let imageIndex = 0;
-
-    // Add text testimonials and interleave images every 2-3 items
-    for (let i = 0; i < textTestimonials.length; i++) {
-      combined.push(textTestimonials[i]);
-
-      // Add an image every 2-3 text testimonials
-      if ((i + 1) % 3 === 0 && imageIndex < imageTestimonials.length) {
-        combined.push(imageTestimonials[imageIndex]);
-        imageIndex++;
-      }
-    }
-
-    // Add any remaining image testimonials at the end
-    while (imageIndex < imageTestimonials.length) {
-      combined.push(imageTestimonials[imageIndex]);
-      imageIndex++;
-    }
-
-    return combined;
   }, [textTestimonialsData]);
+
+  const imageTestimonialsData: ImageTestimonial[] = imageTestimonials;
 
   return (
     <main className="min-h-screen w-full bg-[#101010] text-white font-sans overflow-hidden relative">
@@ -183,56 +158,70 @@ const TestimonialsPage = () => {
 
         {/* Loading State */}
         {isLoading && (
-          <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4 mx-auto max-w-7xl">
-            {/* Text testimonial skeleton */}
-            {[...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="mb-4 break-inside-avoid rounded-xl border border-[#252525] bg-neutral-900/50 p-6 flex flex-col gap-4"
-              >
-                <div className="flex items-center gap-3">
-                  <Skeleton className="w-10 h-10 rounded-full" />
-                  <div className="flex flex-col gap-2 flex-1">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-16" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mx-auto max-w-7xl">
+            {/* Text testimonials column skeleton */}
+            <div className="space-y-4">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl border border-border bg-neutral-900/50 p-6 flex flex-col gap-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-full" />
+                    <div className="flex flex-col gap-2 flex-1">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-3/4" />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-full" />
-                  <Skeleton className="h-3 w-3/4" />
+              ))}
+            </div>
+            {/* Image testimonials column skeleton */}
+            <div className="space-y-4">
+              {[...Array(2)].map((_, i) => (
+                <div
+                  key={`img-${i}`}
+                  className="rounded-xl border border-border bg-neutral-900/50 overflow-hidden"
+                >
+                  <Skeleton className="w-full h-64" />
                 </div>
-              </div>
-            ))}
-            {/* Image testimonial skeleton */}
-            {[...Array(3)].map((_, i) => (
-              <div
-                key={`img-${i}`}
-                className="mb-4 break-inside-avoid rounded-xl border border-[#252525] bg-neutral-900/50 overflow-hidden"
-              >
-                <Skeleton className="w-full h-64" />
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Masonry/Bento Grid */}
-        {!isLoading && allTestimonials.length > 0 && (
-          <div className="columns-1 md:columns-2 lg:columns-3 xl:columns-4 gap-4 space-y-4 mx-auto max-w-7xl">
-            {allTestimonials.map((testimonial) => (
-              <TestimonialCard key={testimonial.id} item={testimonial} />
-            ))}
-          </div>
-        )}
+        {!isLoading &&
+          (textTestimonials.length > 0 || imageTestimonialsData.length > 0) && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mx-auto max-w-7xl">
+              <div className="space-y-4">
+                {textTestimonials.map((testimonial: TextTestimonial) => (
+                  <TestimonialCard key={testimonial.id} item={testimonial} />
+                ))}
+              </div>
+
+              <div className="space-y-4">
+                {imageTestimonialsData.map((testimonial: ImageTestimonial) => (
+                  <TestimonialCard key={testimonial.id} item={testimonial} />
+                ))}
+              </div>
+            </div>
+          )}
 
         {/* Empty State */}
-        {!isLoading && allTestimonials.length === 0 && (
-          <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-            <p className="text-neutral-400 text-lg">
-              No testimonials yet. Be the first to share your experience!
-            </p>
-          </div>
-        )}
+        {!isLoading &&
+          textTestimonials.length === 0 &&
+          imageTestimonialsData.length === 0 && (
+            <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+              <p className="text-neutral-400 text-lg">
+                No testimonials yet. Be the first to share your experience!
+              </p>
+            </div>
+          )}
       </div>
 
       <div className="max-w-[2000px] w-full mx-auto">
