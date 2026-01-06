@@ -1,33 +1,38 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useRouter } from "next/navigation";
+import { redirect } from "next/navigation";
 import CheckoutConfirmation from "./checkout-confirmation";
 
 export default function CheckoutWrapper() {
-  const { isPaidUser, isLoading } = useSubscription();
-  const router = useRouter();
+  const { isPaidUser, isLoading, isFetching, refetch } = useSubscription();
+  const [retryCount, setRetryCount] = useState(0);
 
-  // Show loading state while checking subscription
-  if (isLoading) {
+  useEffect(() => {
+    if (!isLoading && !isFetching && !isPaidUser && retryCount < 3) {
+      const timer = setTimeout(() => {
+        refetch?.();
+        setRetryCount((prev) => prev + 1);
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isPaidUser, isLoading, isFetching, retryCount, refetch]);
+
+  if (isLoading || isFetching || (!isPaidUser && retryCount < 3)) {
     return (
       <div className="flex flex-col h-screen w-full justify-center items-center">
-        <div className="text-white text-xl">Loading...</div>
+        <div className="text-white text-xl">
+          {retryCount > 0 ? "Verifying payment..." : "Loading..."}
+        </div>
       </div>
     );
   }
 
-  // Redirect to pricing if not a paid user
-  if (!isPaidUser) {
-    router.push("/pricing");
-    return (
-      <div className="flex flex-col h-screen w-full justify-center items-center">
-        <div className="text-white text-xl">Redirecting...</div>
-      </div>
-    );
+  if (!isLoading && !isFetching && !isPaidUser && retryCount >= 3) {
+    redirect("/pricing");
   }
 
-  // Show checkout confirmation for paid users
   return <CheckoutConfirmation />;
 }

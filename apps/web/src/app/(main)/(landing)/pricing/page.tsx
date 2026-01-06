@@ -130,6 +130,19 @@ const Pricing = () => {
   const pathname = usePathname();
   const callbackUrl = `${pathname}#pro-price-card`;
 
+  const getDiscountEndDate = () => {
+    const today = new Date();
+    const endDate = new Date(today);
+    endDate.setDate(today.getDate() + 1);
+
+    const day = endDate.getDate();
+    const month = endDate.toLocaleDateString("en-US", { month: "long" });
+
+    return `${day} ${month}`;
+  };
+
+  const discountEndDate = getDiscountEndDate();
+
   useEffect(() => {
     const handleHashScroll = () => {
       if (window.location.hash === "#pro-price-card") {
@@ -348,7 +361,10 @@ const Pricing = () => {
               </div>
               <div className="flex flex-col lg:flex-row items-stretch justify-center gap-6">
                 <PricingCard />
-                <SecondaryPricingCard callbackUrl={callbackUrl} />
+                <SecondaryPricingCard
+                  callbackUrl={callbackUrl}
+                  discountEndDate={discountEndDate}
+                />
               </div>
             </div>
           </div>
@@ -450,7 +466,13 @@ const PricingCard = () => {
   );
 };
 
-const SecondaryPricingCard = ({ callbackUrl }: { callbackUrl: string }) => {
+const SecondaryPricingCard = ({
+  callbackUrl,
+  discountEndDate,
+}: {
+  callbackUrl: string;
+  discountEndDate: string;
+}) => {
   const premiumPlanId = process.env.NEXT_PUBLIC_YEARLY_PREMIUM_PLAN_ID;
   const planIdOk =
     typeof premiumPlanId === "string" && premiumPlanId.length > 0;
@@ -496,7 +518,7 @@ const SecondaryPricingCard = ({ callbackUrl }: { callbackUrl: string }) => {
               <div className="flex items-center gap-3 mt-3 flex-wrap">
                 <p className="text-lg text-white-400">(~ ₹4,410 INR)</p>
                 <span className="px-3 py-1 bg-green-500/20 border border-green-500/50 rounded-full text-green-400 text-sm font-medium">
-                  Discounted till 15 January
+                  Discounted till {discountEndDate}
                 </span>
               </div>
             </div>
